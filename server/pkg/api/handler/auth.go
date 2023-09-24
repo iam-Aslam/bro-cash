@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,8 +12,10 @@ import (
 )
 
 const (
-	user  = "user"
-	admin = "admin"
+	user                   = "user"
+	admin                  = "admin"
+	AuthorizationHeaderKey = "Authorization"
+	AuthorizationType      = "Bearer"
 )
 
 type authHandle struct {
@@ -32,7 +33,7 @@ func (a *authHandle) UserSignUp(ctx *gin.Context) {
 	var body request.SignUp
 	// bind user details from request
 	if err := ctx.ShouldBindJSON(&body); err != nil {
-		response := response.ErrorResponse("failed to bind inputs", err)
+		response := response.ErrorResponse("Failed to bind inputs", err)
 		ctx.JSON(http.StatusBadRequest, response)
 		return
 	}
@@ -47,15 +48,41 @@ func (a *authHandle) UserSignUp(ctx *gin.Context) {
 			statusCode = http.StatusConflict
 		}
 
-		response := response.ErrorResponse("failed to sign-up for user", err)
+		response := response.ErrorResponse("Failed to sign-up for user", err)
 		ctx.JSON(statusCode, response)
 		return
 	}
+	// generate tokens
+	tokenRes, err := a.generateTokens(user, userID, ctx)
+	if err != nil {
+		response := response.ErrorResponse("Failed to generate tokens", err)
+		ctx.JSON(http.StatusInternalServerError, response)
+		return
+	}
 
-	a.setupToken(user, userID, ctx)
+	AuthorizationHeaderValue := AuthorizationType + " " + tokenRes.AccessToken
+	ctx.Header(AuthorizationHeaderKey, AuthorizationHeaderValue)
+
+	response := response.SuccessResponse("Successfully user sign-up completed", tokenRes)
+
+	ctx.JSON(http.StatusCreated, response)
 }
 
-// to setup token for user or admin by role
-func (a *authHandle) setupToken(role string, userID uint, ctx *gin.Context) {
-	fmt.Println("success: ", role, userID)
+// to generate access and refresh token for user or admin by role
+func (a *authHandle) generateTokens(role string, userID uint, ctx *gin.Context) (response.TokenResponse, error) {
+
+	accessToken, err := a.usecase.GenerateAccessToken(ctx, role, userID)
+	if err != nil {
+		return response.TokenResponse{}, err
+	}
+
+	refreshToken, err := a.usecase.GenerateRefreshToken(ctx, role, userID)
+	if err != nil {
+		return response.TokenResponse{}, err
+	}
+
+	return response.TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

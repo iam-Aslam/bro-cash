@@ -8,7 +8,7 @@
 *.so
 *.dylib
 *.env
-
+/build
 # Test binary, built with `go test -c`
 *.test
 
@@ -25,4 +25,5 @@ go.work.sum
 #client 
 
 /tmp
+
 

@@ -12,6 +12,7 @@ import (
 	"github.com/nikhilnarayanan623/bro-cash/server/pkg/config"
 	"github.com/nikhilnarayanan623/bro-cash/server/pkg/db"
 	"github.com/nikhilnarayanan623/bro-cash/server/pkg/repository"
+	"github.com/nikhilnarayanan623/bro-cash/server/pkg/token"
 	"github.com/nikhilnarayanan623/bro-cash/server/pkg/usecase"
 )
 
@@ -24,7 +25,8 @@ func InitializeAPI(cfg config.Config) (*api.Server, error) {
 	}
 	authRepo := repository.NewAuthRepo(gormDB)
 	userRepo := repository.NewUserRepo(gormDB)
-	authUseCase := usecase.NewAuthUseCase(authRepo, userRepo)
+	tokenAuth := token.NewJwtTokenAuth(cfg)
+	authUseCase := usecase.NewAuthUseCase(authRepo, userRepo, tokenAuth)
 	authHandler := handler.NewAuthHandler(authUseCase)
 	server := api.NewServerHTTP(cfg, authHandler)
 	return server, nil

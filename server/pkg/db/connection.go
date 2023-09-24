@@ -24,6 +24,7 @@ func ConnectToDatabase(cfg config.Config) (*gorm.DB, error) {
 
 	err = db.AutoMigrate(
 		&domain.User{},
+		&domain.RefreshTokenSession{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to auto migrate: %w", err)
